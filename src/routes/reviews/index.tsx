@@ -6,7 +6,12 @@ import { AppLayout } from "@/components/AppLayout";
 import { Button, Card, EmptyState, PageHeader } from "@/components/ui/primitives";
 import { ReviewCard } from "@/components/ReviewCard";
 import { useAuth } from "@/contexts/auth-context";
-import { connectGoogleAccount, getGoogleConnection, getReviews } from "@/lib/api";
+import {
+  getArchivedReviews,
+  connectGoogleAccount,
+  getGoogleConnection,
+  getReviews,
+} from "@/lib/api";
 
 export const Route = createFileRoute("/reviews/")({
   head: () => ({
@@ -37,6 +42,7 @@ function Reviews() {
   const [query, setQuery] = useState("");
   const [rating, setRating] = useState("all");
   const [status, setStatus] = useState("all");
+  const [showArchived, setShowArchived] = useState(false);
 
   const { data: connection } = useQuery({
     queryKey: ["google-connection"],
@@ -45,7 +51,12 @@ function Reviews() {
   const { data: reviews = [] } = useQuery({
     queryKey: ["reviews"],
     queryFn: getReviews,
-    enabled: !!connection?.connected,
+    enabled: !!connection?.connected && !showArchived,
+  });
+  const { data: archivedReviews = [] } = useQuery({
+    queryKey: ["archived-reviews"],
+    queryFn: getArchivedReviews,
+    enabled: !!connection?.connected && showArchived,
   });
 
   const connectMutation = useMutation({
@@ -57,7 +68,7 @@ function Reviews() {
     },
   });
 
-  const filtered = reviews.filter(
+  const filtered = (showArchived ? archivedReviews : reviews).filter(
     (r) =>
       (query === "" ||
         r.text.toLowerCase().includes(query.toLowerCase()) ||
@@ -71,6 +82,14 @@ function Reviews() {
       <PageHeader
         title="Reviews"
         subtitle="Monitor reviews from your connected Google Business Profile."
+        actions={
+          <Button
+            variant={showArchived ? "primary" : "secondary"}
+            onClick={() => setShowArchived((v) => !v)}
+          >
+            {showArchived ? "Show active reviews" : "Show removed from list"}
+          </Button>
+        }
       />
 
       <Card className="mt-6 p-4">
@@ -114,7 +133,13 @@ function Reviews() {
       <section className="mt-4 flex flex-col gap-3">
         {filtered.length === 0 ? (
           connection?.connected ? (
-            <EmptyState title="No reviews match your filters." />
+            <EmptyState
+              title={
+                showArchived
+                  ? "No reviews removed from your list."
+                  : "No reviews match your filters."
+              }
+            />
           ) : (
             <EmptyState
               title="No reviews available yet."

@@ -1,6 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import { Star } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Star, Archive, ArchiveRestore } from "lucide-react";
 import { Badge, Button } from "@/components/ui/primitives";
+import { archiveReview, unarchiveReview } from "@/lib/api";
 import { POLICY_RISK_LABELS, type Review } from "@/types";
 
 function Stars({ rating }: { rating: number }) {
@@ -10,7 +12,9 @@ function Stars({ rating }: { rating: number }) {
         <Star
           key={i}
           className={
-            i <= rating ? "h-3.5 w-3.5 fill-warning text-warning" : "h-3.5 w-3.5 text-muted-foreground"
+            i <= rating
+              ? "h-3.5 w-3.5 fill-warning text-warning"
+              : "h-3.5 w-3.5 text-muted-foreground"
           }
         />
       ))}
@@ -19,6 +23,17 @@ function Stars({ rating }: { rating: number }) {
 }
 
 export function ReviewCard({ review }: { review: Review }) {
+  const queryClient = useQueryClient();
+
+  const toggleArchive = useMutation({
+    mutationFn: () => (review.archived ? unarchiveReview(review.id) : archiveReview(review.id)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reviews"] });
+      queryClient.invalidateQueries({ queryKey: ["archived-reviews"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+    },
+  });
+
   return (
     <article className="card-surface flex flex-col gap-3 p-4">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
@@ -34,7 +49,7 @@ export function ReviewCard({ review }: { review: Review }) {
         <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
           {review.status === "needs_attention" && <Badge tone="warning">Needs attention</Badge>}
           {review.status === "reported" && <Badge tone="accent">Reported</Badge>}
-          {review.status === "resolved" && <Badge tone="success">Resolved</Badge>}
+          {review.status === "resolved" && <Badge tone="success">Removed by Google</Badge>}
         </div>
       </div>
 
@@ -50,11 +65,31 @@ export function ReviewCard({ review }: { review: Review }) {
         </div>
       ) : null}
 
-      <Link to="/reviews/$reviewId" params={{ reviewId: review.id }} className="w-full sm:w-auto">
-        <Button variant="secondary" className="w-full sm:w-auto">
-          View Details
+      <div className="flex flex-wrap gap-2">
+        <Link to="/reviews/$reviewId" params={{ reviewId: review.id }} className="w-full sm:w-auto">
+          <Button variant="secondary" className="w-full sm:w-auto">
+            View Details
+          </Button>
+        </Link>
+        <Button
+          variant="ghost"
+          className="w-full sm:w-auto"
+          onClick={() => toggleArchive.mutate()}
+          disabled={toggleArchive.isPending}
+        >
+          {review.archived ? (
+            <>
+              <ArchiveRestore className="h-4 w-4" />
+              Restore
+            </>
+          ) : (
+            <>
+              <Archive className="h-4 w-4" />
+              Remove from list
+            </>
+          )}
         </Button>
-      </Link>
+      </div>
     </article>
   );
 }

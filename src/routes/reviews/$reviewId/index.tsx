@@ -1,10 +1,17 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Flag, Star } from "lucide-react";
+import { ArrowLeft, Flag, Star, Archive, ArchiveRestore, CheckCircle2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { Badge, Button, Card, EmptyState, PageHeader } from "@/components/ui/primitives";
-import { getReportsForReview, getReview, updateReviewNotes } from "@/lib/api";
+import {
+  archiveReview,
+  getReportsForReview,
+  getReview,
+  markReviewRemovedByGoogle,
+  unarchiveReview,
+  updateReviewNotes,
+} from "@/lib/api";
 import { POLICY_RISK_LABELS, type PolicyRiskCategory } from "@/types";
 
 export const Route = createFileRoute("/reviews/$reviewId/")({
@@ -38,6 +45,7 @@ const RISK_CATEGORIES: PolicyRiskCategory[] = [
 
 function ReviewDetails() {
   const { reviewId } = Route.useParams();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [notes, setNotes] = useState("");
 
@@ -62,6 +70,28 @@ function ReviewDetails() {
     },
   });
 
+  const toggleArchive = useMutation({
+    mutationFn: () => (review?.archived ? unarchiveReview(reviewId) : archiveReview(reviewId)),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["review", reviewId] });
+      queryClient.invalidateQueries({ queryKey: ["reviews"] });
+      queryClient.invalidateQueries({ queryKey: ["archived-reviews"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      if (!review?.archived) router.navigate({ to: "/reviews" });
+    },
+  });
+
+  const markRemoved = useMutation({
+    mutationFn: () => markReviewRemovedByGoogle(reviewId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["review", reviewId] });
+      queryClient.invalidateQueries({ queryKey: ["reports", reviewId] });
+      queryClient.invalidateQueries({ queryKey: ["reviews"] });
+      queryClient.invalidateQueries({ queryKey: ["reports"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+    },
+  });
+
   return (
     <AppLayout>
       <Link
@@ -72,7 +102,30 @@ function ReviewDetails() {
         Back to reviews
       </Link>
 
-      <PageHeader title="Review Details" />
+      <PageHeader
+        title="Review Details"
+        actions={
+          review ? (
+            <Button
+              variant="secondary"
+              onClick={() => toggleArchive.mutate()}
+              disabled={toggleArchive.isPending}
+            >
+              {review.archived ? (
+                <>
+                  <ArchiveRestore className="h-4 w-4" />
+                  Restore to list
+                </>
+              ) : (
+                <>
+                  <Archive className="h-4 w-4" />
+                  Remove from list
+                </>
+              )}
+            </Button>
+          ) : undefined
+        }
+      />
 
       {!review ? (
         <Card className="mt-6">
@@ -151,6 +204,25 @@ function ReviewDetails() {
                 {latestEvidence ?? "No evidence attached yet."}
               </p>
             </Card>
+
+            {reports.length > 0 && review.status !== "resolved" ? (
+              <Card>
+                <h2 className="text-sm font-semibold">Google Removed This Review?</h2>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Once you've confirmed on your Google Business Profile that Google took this review
+                  down, mark it here to keep your records accurate.
+                </p>
+                <Button
+                  variant="secondary"
+                  className="mt-3 w-full"
+                  onClick={() => markRemoved.mutate()}
+                  disabled={markRemoved.isPending}
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  {markRemoved.isPending ? "Updating…" : "Mark as removed by Google"}
+                </Button>
+              </Card>
+            ) : null}
 
             <Link to="/reviews/$reviewId/report" params={{ reviewId }} className="block">
               <Button className="w-full">

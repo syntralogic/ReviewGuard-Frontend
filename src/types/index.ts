@@ -12,12 +12,7 @@ export interface GoogleConnection {
 }
 
 export type PolicyRiskCategory =
-  | "spam"
-  | "irrelevant"
-  | "harassment"
-  | "offensive"
-  | "promotional"
-  | "conflict_of_interest";
+  "spam" | "irrelevant" | "harassment" | "offensive" | "promotional" | "conflict_of_interest";
 
 export type ReviewStatus = "needs_attention" | "reported" | "resolved" | "none";
 
@@ -31,6 +26,8 @@ export interface Review {
   riskCategories: PolicyRiskCategory[];
   status: ReviewStatus;
   notes: string | null;
+  /** Hidden from the main list view. Local to this app only — has no effect on Google. */
+  archived: boolean;
 }
 
 export type ReportStatus = "prepared" | "submitted" | "under_review" | "closed";

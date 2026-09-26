@@ -34,6 +34,7 @@ function seedReviews(): Review[] {
       riskCategories: ["spam", "promotional"],
       status: "needs_attention",
       notes: null,
+      archived: false,
     },
     {
       id: crypto.randomUUID(),
@@ -45,6 +46,7 @@ function seedReviews(): Review[] {
       riskCategories: ["irrelevant", "conflict_of_interest"],
       status: "needs_attention",
       notes: null,
+      archived: false,
     },
     {
       id: crypto.randomUUID(),
@@ -56,6 +58,7 @@ function seedReviews(): Review[] {
       riskCategories: [],
       status: "none",
       notes: null,
+      archived: false,
     },
     {
       id: crypto.randomUUID(),
@@ -67,6 +70,7 @@ function seedReviews(): Review[] {
       riskCategories: [],
       status: "none",
       notes: null,
+      archived: false,
     },
     {
       id: crypto.randomUUID(),
@@ -78,6 +82,7 @@ function seedReviews(): Review[] {
       riskCategories: ["harassment", "offensive"],
       status: "resolved",
       notes: "Reported to Google in the past; review was taken down.",
+      archived: false,
     },
   ];
 }
@@ -149,11 +154,12 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     });
   }
 
-  const totalReviews = reviews.length;
+  const activeReviews = reviews.filter((r) => !r.archived);
+  const totalReviews = activeReviews.length;
   const averageRating = totalReviews
-    ? Math.round((reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews) * 10) / 10
+    ? Math.round((activeReviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews) * 10) / 10
     : 0;
-  const needsAttention = reviews.filter((r) => r.status === "needs_attention").length;
+  const needsAttention = activeReviews.filter((r) => r.status === "needs_attention").length;
 
   return delay({
     totalReviews,
@@ -166,7 +172,18 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 export async function getReviews(): Promise<Review[]> {
   const { reviews } = readStore();
   return delay(
-    [...reviews].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    reviews
+      .filter((r) => !r.archived)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+  );
+}
+
+export async function getArchivedReviews(): Promise<Review[]> {
+  const { reviews } = readStore();
+  return delay(
+    reviews
+      .filter((r) => r.archived)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
   );
 }
 
@@ -180,6 +197,49 @@ export async function updateReviewNotes(id: string, notes: string): Promise<Revi
   const review = store.reviews.find((r) => r.id === id);
   if (!review) return delay(null);
   review.notes = notes.trim() || null;
+  writeStore(store);
+  return delay(review);
+}
+
+/**
+ * Removes a review from this app's own list only (e.g. it isn't relevant, or
+ * was actioned outside the app). This never touches the review on Google —
+ * there is no way for a business to delete a Google review directly; only
+ * Google can do that, and only after reviewing a report (see markReviewRemovedByGoogle).
+ */
+export async function archiveReview(id: string): Promise<Review | null> {
+  const store = readStore();
+  const review = store.reviews.find((r) => r.id === id);
+  if (!review) return delay(null);
+  review.archived = true;
+  writeStore(store);
+  return delay(review);
+}
+
+export async function unarchiveReview(id: string): Promise<Review | null> {
+  const store = readStore();
+  const review = store.reviews.find((r) => r.id === id);
+  if (!review) return delay(null);
+  review.archived = false;
+  writeStore(store);
+  return delay(review);
+}
+
+/**
+ * Records that Google has actually taken a review down after a report was
+ * submitted through Google's own tools. This is a manual confirmation the
+ * business owner makes once they've checked their Google Business Profile —
+ * the app has no way to detect or trigger this itself.
+ */
+export async function markReviewRemovedByGoogle(reviewId: string): Promise<Review | null> {
+  const store = readStore();
+  const review = store.reviews.find((r) => r.id === reviewId);
+  if (!review) return delay(null);
+  review.status = "resolved";
+  const relatedReports = store.reports.filter((r) => r.reviewId === reviewId);
+  relatedReports.forEach((r) => {
+    r.status = "closed";
+  });
   writeStore(store);
   return delay(review);
 }
