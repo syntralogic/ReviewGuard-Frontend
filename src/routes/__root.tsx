@@ -11,6 +11,23 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { AuthProvider } from "../contexts/auth-context";
+import { ThemeProvider } from "../contexts/theme-context";
+
+// Runs before hydration to set the theme class on <html> and avoid a flash
+// of the wrong theme. Kept minimal and defensive (try/catch) since it runs
+// outside React and localStorage/matchMedia can throw in some contexts.
+const NO_FLASH_THEME_SCRIPT = `
+(function () {
+  try {
+    var stored = localStorage.getItem("reviewguard.theme");
+    var theme = stored === "light" || stored === "dark"
+      ? stored
+      : (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+    document.documentElement.classList.toggle("dark", theme === "dark");
+  } catch (e) {}
+})();
+`;
 
 function NotFoundComponent() {
   return (
@@ -80,14 +97,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "ReviewGuard" },
       {
         name: "description",
-        content:
-          "Monitor Google reviews, flag potential policy risks, and track prepared reports.",
+        content: "Monitor Google reviews, flag potential policy risks, and track prepared reports.",
       },
       { property: "og:title", content: "ReviewGuard" },
       {
         property: "og:description",
-        content:
-          "Monitor Google reviews, flag potential policy risks, and track prepared reports.",
+        content: "Monitor Google reviews, flag potential policy risks, and track prepared reports.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -114,9 +129,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <head>
         <HeadContent />
+        <script dangerouslySetInnerHTML={{ __html: NO_FLASH_THEME_SCRIPT }} />
       </head>
       <body>
         {children}
@@ -131,8 +147,12 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <ThemeProvider>
+        <AuthProvider>
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
