@@ -12,4 +12,8 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  nitro: {
+    // Hard-pin the deploy target to Vercel instead of relying on env auto-detection.
+    preset: "vercel",
+  },
 });
