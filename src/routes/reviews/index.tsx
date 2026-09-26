@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Plug, Search } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
 import { Button, Card, EmptyState, PageHeader } from "@/components/ui/primitives";
 import { ReviewCard } from "@/components/ReviewCard";
-import { getReviews } from "@/lib/api";
+import { useAuth } from "@/contexts/auth-context";
+import { connectGoogleAccount, getGoogleConnection, getReviews } from "@/lib/api";
 
 export const Route = createFileRoute("/reviews/")({
   head: () => ({
@@ -31,15 +32,35 @@ const selectClass =
   "h-11 w-full rounded-lg border border-border bg-input px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring sm:w-auto";
 
 function Reviews() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
   const [rating, setRating] = useState("all");
   const [status, setStatus] = useState("all");
 
-  const { data: reviews = [] } = useQuery({ queryKey: ["reviews"], queryFn: getReviews });
+  const { data: connection } = useQuery({
+    queryKey: ["google-connection"],
+    queryFn: getGoogleConnection,
+  });
+  const { data: reviews = [] } = useQuery({
+    queryKey: ["reviews"],
+    queryFn: getReviews,
+    enabled: !!connection?.connected,
+  });
+
+  const connectMutation = useMutation({
+    mutationFn: () => connectGoogleAccount(user?.email ?? "owner@example.com"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["google-connection"] });
+      queryClient.invalidateQueries({ queryKey: ["reviews"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+    },
+  });
 
   const filtered = reviews.filter(
     (r) =>
-      (query === "" || r.text.toLowerCase().includes(query.toLowerCase()) ||
+      (query === "" ||
+        r.text.toLowerCase().includes(query.toLowerCase()) ||
         r.reviewerName.toLowerCase().includes(query.toLowerCase())) &&
       (rating === "all" || r.rating === Number(rating)) &&
       (status === "all" || r.status === status),
@@ -92,16 +113,24 @@ function Reviews() {
 
       <section className="mt-4 flex flex-col gap-3">
         {filtered.length === 0 ? (
-          <EmptyState
-            title="No reviews available yet."
-            description="Connect your Google Business Profile to start monitoring reviews."
-            action={
-              <Button className="w-full sm:w-auto">
-                <Plug className="h-4 w-4" />
-                Connect Google
-              </Button>
-            }
-          />
+          connection?.connected ? (
+            <EmptyState title="No reviews match your filters." />
+          ) : (
+            <EmptyState
+              title="No reviews available yet."
+              description="Connect your Google Business Profile to start monitoring reviews."
+              action={
+                <Button
+                  className="w-full sm:w-auto"
+                  onClick={() => connectMutation.mutate()}
+                  disabled={connectMutation.isPending}
+                >
+                  <Plug className="h-4 w-4" />
+                  {connectMutation.isPending ? "Connecting…" : "Connect Google"}
+                </Button>
+              }
+            />
+          )
         ) : (
           filtered.map((r) => <ReviewCard key={r.id} review={r} />)
         )}

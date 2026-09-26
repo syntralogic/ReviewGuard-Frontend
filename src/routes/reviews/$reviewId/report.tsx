@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
@@ -29,13 +30,11 @@ export const Route = createFileRoute("/reviews/$reviewId/report")({
 const fieldClass =
   "w-full rounded-lg border border-border bg-input px-3 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring";
 
-const REASONS = Object.entries(POLICY_RISK_LABELS) as [
-  keyof typeof POLICY_RISK_LABELS,
-  string,
-][];
+const REASONS = Object.entries(POLICY_RISK_LABELS) as [keyof typeof POLICY_RISK_LABELS, string][];
 
 function ReportReview() {
   const { reviewId } = Route.useParams();
+  const queryClient = useQueryClient();
   const [reason, setReason] = useState<keyof typeof POLICY_RISK_LABELS>("spam");
   const [explanation, setExplanation] = useState("");
   const [evidence, setEvidence] = useState("");
@@ -44,6 +43,11 @@ function ReportReview() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     await prepareReport({ reviewId, reason, explanation, evidence: evidence || null });
+    queryClient.invalidateQueries({ queryKey: ["review", reviewId] });
+    queryClient.invalidateQueries({ queryKey: ["reports", reviewId] });
+    queryClient.invalidateQueries({ queryKey: ["reviews"] });
+    queryClient.invalidateQueries({ queryKey: ["reports"] });
+    queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
     setDone(true);
   }
 

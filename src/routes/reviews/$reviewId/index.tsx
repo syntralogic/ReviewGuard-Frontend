@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Flag, Star } from "lucide-react";
+import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { Badge, Button, Card, EmptyState, PageHeader } from "@/components/ui/primitives";
-import { getReview } from "@/lib/api";
+import { getReportsForReview, getReview, updateReviewNotes } from "@/lib/api";
 import { POLICY_RISK_LABELS, type PolicyRiskCategory } from "@/types";
 
 export const Route = createFileRoute("/reviews/$reviewId/")({
@@ -37,9 +38,28 @@ const RISK_CATEGORIES: PolicyRiskCategory[] = [
 
 function ReviewDetails() {
   const { reviewId } = Route.useParams();
+  const queryClient = useQueryClient();
+  const [notes, setNotes] = useState("");
+
   const { data: review } = useQuery({
     queryKey: ["review", reviewId],
     queryFn: () => getReview(reviewId),
+  });
+  const { data: reports = [] } = useQuery({
+    queryKey: ["reports", reviewId],
+    queryFn: () => getReportsForReview(reviewId),
+  });
+  const latestEvidence = [...reports].reverse().find((r) => r.evidence)?.evidence;
+
+  useEffect(() => {
+    setNotes(review?.notes ?? "");
+  }, [review?.notes]);
+
+  const saveNotes = useMutation({
+    mutationFn: () => updateReviewNotes(reviewId, notes),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["review", reviewId] });
+    },
   });
 
   return (
@@ -106,14 +126,30 @@ function ReviewDetails() {
 
             <Card>
               <h2 className="text-sm font-semibold">Notes</h2>
-              <p className="mt-2 text-sm text-muted-foreground">
-                {review.notes ?? "No notes added yet."}
-              </p>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Add internal notes about this review…"
+                rows={3}
+                className="mt-2 w-full resize-y rounded-lg border border-border bg-input px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              />
+              {notes !== (review.notes ?? "") && (
+                <Button
+                  variant="secondary"
+                  className="mt-2 w-full sm:w-auto"
+                  onClick={() => saveNotes.mutate()}
+                  disabled={saveNotes.isPending}
+                >
+                  {saveNotes.isPending ? "Saving…" : "Save note"}
+                </Button>
+              )}
             </Card>
 
             <Card>
               <h2 className="text-sm font-semibold">Evidence</h2>
-              <p className="mt-2 text-sm text-muted-foreground">No evidence attached yet.</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                {latestEvidence ?? "No evidence attached yet."}
+              </p>
             </Card>
 
             <Link to="/reviews/$reviewId/report" params={{ reviewId }} className="block">
