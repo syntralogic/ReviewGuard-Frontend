@@ -9,11 +9,11 @@ import {
 
 interface AuthContextValue {
   user: AuthUser | null;
-  /** True until the session has been read from localStorage on the client. */
+  /** True until the session has been checked with the backend on the client. */
   isLoading: boolean;
-  login: (email: string, password: string) => AuthUser;
-  register: (name: string, email: string, password: string) => AuthUser;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<AuthUser>;
+  register: (name: string, email: string, password: string) => Promise<AuthUser>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -23,24 +23,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setUser(getSession());
-    setIsLoading(false);
+    let cancelled = false;
+    getSession().then((session) => {
+      if (!cancelled) {
+        setUser(session);
+        setIsLoading(false);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const login = (email: string, password: string) => {
-    const loggedInUser = signInApi({ email, password });
+  const login = async (email: string, password: string) => {
+    const loggedInUser = await signInApi({ email, password });
     setUser(loggedInUser);
     return loggedInUser;
   };
 
-  const register = (name: string, email: string, password: string) => {
-    const newUser = signUpApi({ name, email, password });
+  const register = async (name: string, email: string, password: string) => {
+    const newUser = await signUpApi({ name, email, password });
     setUser(newUser);
     return newUser;
   };
 
-  const logout = () => {
-    signOutApi();
+  const logout = async () => {
+    await signOutApi();
     setUser(null);
   };
 

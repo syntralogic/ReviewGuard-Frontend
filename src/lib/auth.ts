@@ -1,9 +1,11 @@
 /**
- * Frontend-only mock auth layer, backed by localStorage.
- * There is no backend yet — swap these for real API calls once one exists.
- * NOTE: passwords are stored in plaintext in localStorage. This is fine for a
- * local/demo mock, but must NOT be treated as production-grade auth.
+ * Auth layer backed by the real ReviewGuard backend
+ * (`syntralogic/ReviewGuard-Backend`, `/api/auth/*`). Session state lives in
+ * an httpOnly cookie the backend sets — nothing sensitive is kept in
+ * localStorage anymore. Function names/shapes match the old mock so the
+ * rest of the app (auth-context.tsx) didn't need to change its call sites.
  */
+import { apiClient } from "@/lib/api-client";
 
 export interface AuthUser {
   id: string;
@@ -11,84 +13,27 @@ export interface AuthUser {
   email: string;
 }
 
-interface StoredAccount extends AuthUser {
-  password: string;
-}
-
-const ACCOUNTS_KEY = "reviewguard.accounts";
-const SESSION_KEY = "reviewguard.session";
-
-function readAccounts(): StoredAccount[] {
-  if (typeof window === "undefined") return [];
+/** Reads the current session from the backend, or null if not logged in. */
+export async function getSession(): Promise<AuthUser | null> {
   try {
-    const raw = window.localStorage.getItem(ACCOUNTS_KEY);
-    return raw ? (JSON.parse(raw) as StoredAccount[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeAccounts(accounts: StoredAccount[]) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
-}
-
-function setSession(user: AuthUser | null) {
-  if (typeof window === "undefined") return;
-  if (!user) {
-    window.localStorage.removeItem(SESSION_KEY);
-    return;
-  }
-  window.localStorage.setItem(SESSION_KEY, JSON.stringify(user));
-}
-
-export function getSession(): AuthUser | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(SESSION_KEY);
-    return raw ? (JSON.parse(raw) as AuthUser) : null;
+    return await apiClient.get<AuthUser>("/api/auth/me");
   } catch {
     return null;
   }
 }
 
-export function signUp(input: { name: string; email: string; password: string }): AuthUser {
-  const accounts = readAccounts();
-  const email = input.email.trim().toLowerCase();
-
-  if (accounts.some((a) => a.email === email)) {
-    throw new Error("An account with this email already exists.");
-  }
-
-  const account: StoredAccount = {
-    id: crypto.randomUUID(),
-    name: input.name.trim(),
-    email,
-    password: input.password,
-  };
-
-  accounts.push(account);
-  writeAccounts(accounts);
-
-  const user: AuthUser = { id: account.id, name: account.name, email: account.email };
-  setSession(user);
-  return user;
+export async function signUp(input: {
+  name: string;
+  email: string;
+  password: string;
+}): Promise<AuthUser> {
+  return apiClient.post<AuthUser>("/api/auth/signup", input);
 }
 
-export function signIn(input: { email: string; password: string }): AuthUser {
-  const accounts = readAccounts();
-  const email = input.email.trim().toLowerCase();
-  const account = accounts.find((a) => a.email === email);
-
-  if (!account || account.password !== input.password) {
-    throw new Error("Invalid email or password.");
-  }
-
-  const user: AuthUser = { id: account.id, name: account.name, email: account.email };
-  setSession(user);
-  return user;
+export async function signIn(input: { email: string; password: string }): Promise<AuthUser> {
+  return apiClient.post<AuthUser>("/api/auth/login", input);
 }
 
-export function signOut() {
-  setSession(null);
+export async function signOut(): Promise<void> {
+  await apiClient.post<void>("/api/auth/logout");
 }

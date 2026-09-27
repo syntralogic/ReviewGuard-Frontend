@@ -102,17 +102,17 @@ function LoginPage() {
   );
 }
 
-function LoginForm({ onSubmit }: { onSubmit: (values: LoginValues) => void }) {
+function LoginForm({ onSubmit }: { onSubmit: (values: LoginValues) => Promise<unknown> }) {
   const [formError, setFormError] = useState<string | null>(null);
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
   });
 
-  const handleSubmit = form.handleSubmit((values) => {
+  const handleSubmit = form.handleSubmit(async (values) => {
     setFormError(null);
     try {
-      onSubmit(values);
+      await onSubmit(values);
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Something went wrong.");
     }
@@ -167,17 +167,17 @@ function LoginForm({ onSubmit }: { onSubmit: (values: LoginValues) => void }) {
   );
 }
 
-function SignupForm({ onSubmit }: { onSubmit: (values: SignupValues) => void }) {
+function SignupForm({ onSubmit }: { onSubmit: (values: SignupValues) => Promise<unknown> }) {
   const [formError, setFormError] = useState<string | null>(null);
   const form = useForm<SignupValues>({
     resolver: zodResolver(signupSchema),
     defaultValues: { name: "", email: "", password: "", confirmPassword: "" },
   });
 
-  const handleSubmit = form.handleSubmit((values) => {
+  const handleSubmit = form.handleSubmit(async (values) => {
     setFormError(null);
     try {
-      onSubmit(values);
+      await onSubmit(values);
     } catch (err) {
       setFormError(err instanceof Error ? err.message : "Something went wrong.");
     }
