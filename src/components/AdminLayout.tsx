@@ -14,10 +14,11 @@ const adminNav = [
 
 /**
  * Platform-wide admin panel — separate from the per-business AppLayout.
- * Not yet gated by a real admin role (the account system doesn't have one
- * yet) and not yet wired to the backend's admin data; it's still reading
- * from lib/admin-api.ts's own mock store. Access control and real data will
- * come with the API integration pass.
+ * Reads from lib/admin-api.ts, which now calls the backend's /api/admin/*
+ * routes. Not yet gated in the UI by a real admin role (any signed-in user
+ * can open these pages) — the backend itself enforces role = 'admin' on
+ * every request and returns 403 for anyone else, so the pages fall back to
+ * empty/"--" placeholders in that case rather than showing platform data.
  */
 export function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
