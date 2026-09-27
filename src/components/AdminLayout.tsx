@@ -1,41 +1,29 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import {
-  LayoutDashboard,
-  MessageSquare,
-  FileText,
-  ShieldCheck,
-  LogOut,
-  User,
-  UserCog,
-} from "lucide-react";
+import { LayoutDashboard, Building2, FileWarning, ArrowLeft, ShieldCheck } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { AuthGuard } from "@/components/AuthGuard";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/contexts/auth-context";
 
-const nav = [
-  { label: "Dashboard", to: "/", icon: LayoutDashboard },
-  { label: "Reviews", to: "/reviews", icon: MessageSquare },
-  { label: "Reports", to: "/reports", icon: FileText },
-  // Not gated by a real admin role yet, and not wired to real backend admin
-  // data — see AdminLayout. Visible in the desktop sidebar only for now.
-  { label: "Admin", to: "/admin", icon: UserCog },
+const adminNav = [
+  { label: "Overview", to: "/admin", icon: LayoutDashboard },
+  { label: "Businesses", to: "/admin/businesses", icon: Building2 },
+  { label: "Reports", to: "/admin/reports", icon: FileWarning },
 ] as const;
 
-// Keep the mobile bottom nav at 4 items (grid-cols-4 below) — Admin is
-// desktop-sidebar only for now.
-const mobileNav = [
-  { label: "Dashboard", to: "/", icon: LayoutDashboard },
-  { label: "Reviews", to: "/reviews", icon: MessageSquare },
-  { label: "Reports", to: "/reports", icon: FileText },
-  { label: "Profile", to: "/profile", icon: User },
-] as const;
-
-export function AppLayout({ children }: { children: ReactNode }) {
+/**
+ * Platform-wide admin panel — separate from the per-business AppLayout.
+ * Not yet gated by a real admin role (the account system doesn't have one
+ * yet) and not yet wired to the backend's admin data; it's still reading
+ * from lib/admin-api.ts's own mock store. Access control and real data will
+ * come with the API integration pass.
+ */
+export function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { user, logout } = useAuth();
-  const isActive = (to: string) => (to === "/" ? pathname === "/" : pathname.startsWith(to));
+  const { user } = useAuth();
+  const isActive = (to: string) =>
+    to === "/admin" ? pathname === "/admin" : pathname.startsWith(to);
 
   return (
     <AuthGuard>
@@ -45,10 +33,13 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
               <ShieldCheck className="h-5 w-5" />
             </span>
-            <span className="truncate text-base font-semibold tracking-tight">ReviewGuard</span>
+            <div className="min-w-0">
+              <p className="truncate text-base font-semibold tracking-tight">ReviewGuard</p>
+              <p className="truncate text-xs font-medium text-muted-foreground">Admin</p>
+            </div>
           </div>
           <nav className="flex flex-col gap-1">
-            {nav.map((item) => (
+            {adminNav.map((item) => (
               <Link
                 key={item.to}
                 to={item.to}
@@ -77,38 +68,21 @@ export function AppLayout({ children }: { children: ReactNode }) {
             </div>
             <div className="flex items-center gap-2 px-2">
               <ThemeToggle className="flex-1" />
-              <button
-                type="button"
-                onClick={logout}
-                aria-label="Log out"
-                title="Log out"
+              <Link
+                to="/"
+                aria-label="Back to app"
+                title="Back to app"
                 className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-secondary text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               >
-                <LogOut className="h-4 w-4" />
-              </button>
+                <ArrowLeft className="h-4 w-4" />
+              </Link>
             </div>
           </div>
         </aside>
 
-        <main className="mx-auto w-full max-w-5xl px-4 pb-24 pt-6 md:pb-10 md:pl-64 md:pr-6 lg:max-w-6xl">
+        <main className="mx-auto w-full max-w-5xl px-4 pb-10 pt-6 md:pl-64 md:pr-6 lg:max-w-6xl">
           {children}
         </main>
-
-        <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t border-border bg-surface/95 backdrop-blur md:hidden">
-          {mobileNav.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className={cn(
-                "flex flex-col items-center gap-1 py-2.5 text-xs font-medium transition-colors",
-                isActive(item.to) ? "text-primary" : "text-muted-foreground",
-              )}
-            >
-              <item.icon className="h-5 w-5" />
-              {item.label}
-            </Link>
-          ))}
-        </nav>
       </div>
     </AuthGuard>
   );

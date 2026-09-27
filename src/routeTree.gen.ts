@@ -13,6 +13,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminBusinessesRouteImport } from './routes/admin/businesses'
+import { Route as AdminReportsRouteImport } from './routes/admin/reports'
 import { Route as ReviewsIndexRouteImport } from './routes/reviews/index'
 import { Route as ReviewsReviewIdIndexRouteImport } from './routes/reviews/$reviewId/index'
 import { Route as ReviewsReviewIdReportRouteImport } from './routes/reviews/$reviewId/report'
@@ -37,6 +40,21 @@ const ReportsRoute = ReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminBusinessesRoute = AdminBusinessesRouteImport.update({
+  id: '/admin/businesses',
+  path: '/admin/businesses',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminReportsRoute = AdminReportsRouteImport.update({
+  id: '/admin/reports',
+  path: '/admin/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReviewsIndexRoute = ReviewsIndexRouteImport.update({
   id: '/reviews/',
   path: '/reviews/',
@@ -58,6 +76,9 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/reports': typeof ReportsRoute
+  '/admin/businesses': typeof AdminBusinessesRoute
+  '/admin/reports': typeof AdminReportsRoute
+  '/admin/': typeof AdminIndexRoute
   '/reviews/': typeof ReviewsIndexRoute
   '/reviews/$reviewId/report': typeof ReviewsReviewIdReportRoute
   '/reviews/$reviewId/': typeof ReviewsReviewIdIndexRoute
@@ -67,6 +88,9 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/reports': typeof ReportsRoute
+  '/admin/businesses': typeof AdminBusinessesRoute
+  '/admin/reports': typeof AdminReportsRoute
+  '/admin': typeof AdminIndexRoute
   '/reviews': typeof ReviewsIndexRoute
   '/reviews/$reviewId/report': typeof ReviewsReviewIdReportRoute
   '/reviews/$reviewId': typeof ReviewsReviewIdIndexRoute
@@ -77,6 +101,9 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
   '/reports': typeof ReportsRoute
+  '/admin/businesses': typeof AdminBusinessesRoute
+  '/admin/reports': typeof AdminReportsRoute
+  '/admin/': typeof AdminIndexRoute
   '/reviews/': typeof ReviewsIndexRoute
   '/reviews/$reviewId/report': typeof ReviewsReviewIdReportRoute
   '/reviews/$reviewId/': typeof ReviewsReviewIdIndexRoute
@@ -88,6 +115,9 @@ export interface FileRouteTypes {
     | '/login'
     | '/profile'
     | '/reports'
+    | '/admin/businesses'
+    | '/admin/reports'
+    | '/admin/'
     | '/reviews/'
     | '/reviews/$reviewId/report'
     | '/reviews/$reviewId/'
@@ -97,6 +127,9 @@ export interface FileRouteTypes {
     | '/login'
     | '/profile'
     | '/reports'
+    | '/admin/businesses'
+    | '/admin/reports'
+    | '/admin'
     | '/reviews'
     | '/reviews/$reviewId/report'
     | '/reviews/$reviewId'
@@ -106,6 +139,9 @@ export interface FileRouteTypes {
     | '/login'
     | '/profile'
     | '/reports'
+    | '/admin/businesses'
+    | '/admin/reports'
+    | '/admin/'
     | '/reviews/'
     | '/reviews/$reviewId/report'
     | '/reviews/$reviewId/'
@@ -116,6 +152,9 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ProfileRoute: typeof ProfileRoute
   ReportsRoute: typeof ReportsRoute
+  AdminBusinessesRoute: typeof AdminBusinessesRoute
+  AdminReportsRoute: typeof AdminReportsRoute
+  AdminIndexRoute: typeof AdminIndexRoute
   ReviewsIndexRoute: typeof ReviewsIndexRoute
   ReviewsReviewIdReportRoute: typeof ReviewsReviewIdReportRoute
   ReviewsReviewIdIndexRoute: typeof ReviewsReviewIdIndexRoute
@@ -151,6 +190,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/businesses': {
+      id: '/admin/businesses'
+      path: '/admin/businesses'
+      fullPath: '/admin/businesses'
+      preLoaderRoute: typeof AdminBusinessesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/reports': {
+      id: '/admin/reports'
+      path: '/admin/reports'
+      fullPath: '/admin/reports'
+      preLoaderRoute: typeof AdminReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reviews/': {
       id: '/reviews/'
       path: '/reviews'
@@ -180,6 +240,9 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ProfileRoute: ProfileRoute,
   ReportsRoute: ReportsRoute,
+  AdminBusinessesRoute: AdminBusinessesRoute,
+  AdminReportsRoute: AdminReportsRoute,
+  AdminIndexRoute: AdminIndexRoute,
   ReviewsIndexRoute: ReviewsIndexRoute,
   ReviewsReviewIdReportRoute: ReviewsReviewIdReportRoute,
   ReviewsReviewIdIndexRoute: ReviewsReviewIdIndexRoute,
