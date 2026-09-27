@@ -11,6 +11,7 @@ export interface AuthUser {
   id: string;
   name: string;
   email: string;
+  role: "owner" | "admin";
 }
 
 /** Reads the current session from the backend, or null if not logged in. */

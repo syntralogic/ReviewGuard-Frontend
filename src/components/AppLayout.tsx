@@ -18,10 +18,9 @@ const nav = [
   { label: "Dashboard", to: "/", icon: LayoutDashboard },
   { label: "Reviews", to: "/reviews", icon: MessageSquare },
   { label: "Reports", to: "/reports", icon: FileText },
-  // Not gated by a real admin role yet, and not wired to real backend admin
-  // data — see AdminLayout. Visible in the desktop sidebar only for now.
-  { label: "Admin", to: "/admin", icon: UserCog },
 ] as const;
+
+const adminNavItem = { label: "Admin", to: "/admin", icon: UserCog } as const;
 
 // Keep the mobile bottom nav at 4 items (grid-cols-4 below) — Admin is
 // desktop-sidebar only for now.
@@ -63,6 +62,20 @@ export function AppLayout({ children }: { children: ReactNode }) {
                 {item.label}
               </Link>
             ))}
+            {user?.role === "admin" ? (
+              <Link
+                to={adminNavItem.to}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  isActive(adminNavItem.to)
+                    ? "bg-accent text-foreground"
+                    : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+                )}
+              >
+                <adminNavItem.icon className="h-4 w-4 shrink-0" />
+                {adminNavItem.label}
+              </Link>
+            ) : null}
           </nav>
 
           <div className="mt-auto flex flex-col gap-3 border-t border-border pt-4">
