@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, MessageSquare, FileText, ShieldCheck, LogOut } from "lucide-react";
+import { LayoutDashboard, MessageSquare, FileText, ShieldCheck, LogOut, User } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { AuthGuard } from "@/components/AuthGuard";
@@ -11,6 +11,8 @@ const nav = [
   { label: "Reviews", to: "/reviews", icon: MessageSquare },
   { label: "Reports", to: "/reports", icon: FileText },
 ] as const;
+
+const mobileNav = [...nav, { label: "Profile", to: "/profile", icon: User }] as const;
 
 export function AppLayout({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -74,8 +76,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
           {children}
         </main>
 
-        <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-3 border-t border-border bg-surface/95 backdrop-blur md:hidden">
-          {nav.map((item) => (
+        <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t border-border bg-surface/95 backdrop-blur md:hidden">
+          {mobileNav.map((item) => (
             <Link
               key={item.to}
               to={item.to}

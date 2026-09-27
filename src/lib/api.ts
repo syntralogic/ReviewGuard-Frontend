@@ -257,6 +257,24 @@ export async function getReportsForReview(reviewId: string): Promise<Report[]> {
 }
 
 /**
+ * Marks a prepared report as actually submitted through Google's own
+ * review-flagging tools. This is a manual confirmation the business owner
+ * makes once they've copied the report and filed it with Google themselves —
+ * the app has no way to submit it on their behalf, so without this the
+ * report would stay "prepared" forever even after it was sent.
+ */
+export async function markReportSubmitted(id: string): Promise<Report | null> {
+  const store = readStore();
+  const report = store.reports.find((r) => r.id === id);
+  if (!report) return delay(null);
+  if (report.status === "prepared") {
+    report.status = "submitted";
+  }
+  writeStore(store);
+  return delay(report);
+}
+
+/**
  * Prepares a report explaining why a review may violate Google's own review
  * policies. This only stores a draft locally for the business owner to
  * review and submit themselves through Google's official reporting/flagging
