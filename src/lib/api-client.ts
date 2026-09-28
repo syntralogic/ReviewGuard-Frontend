@@ -6,7 +6,7 @@
  * try/catch the same way they did with the old localStorage mock.
  */
 
-const API_BASE_URL = import.meta.env["VITE_API_URL"] ?? "http://localhost:4000";
+export const API_BASE_URL = import.meta.env["VITE_API_URL"] ?? "http://localhost:4000";
 
 export class ApiError extends Error {
   status: number;

@@ -1,5 +1,5 @@
 import type { DashboardStats, GoogleConnection, Report, Review } from "@/types";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, API_BASE_URL } from "@/lib/api-client";
 
 /**
  * Data layer backed by the real ReviewGuard backend
@@ -24,6 +24,14 @@ export async function getGoogleConnection(): Promise<GoogleConnection> {
  * show the first time.
  */
 export async function connectGoogleAccount(accountEmail: string): Promise<GoogleConnection> {
+  // When the backend has Google OAuth configured, hand off to Google's
+  // consent screen; the backend redirects back to "/?google=connected" and
+  // then auto-syncs all reviews. Otherwise fall back to the demo connect.
+  const config = await apiClient.get<{ googleEnabled?: boolean } | null>("/api/connection/google/config");
+  if (config?.googleEnabled) {
+    window.location.href = `${API_BASE_URL}/api/connection/google/start`;
+    return new Promise<GoogleConnection>(() => {}); // page is navigating away
+  }
   return apiClient.post<GoogleConnection>("/api/connection/connect", { accountEmail });
 }
 
